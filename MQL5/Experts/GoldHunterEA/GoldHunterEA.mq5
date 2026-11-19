@@ -1,28 +1,28 @@
 //+------------------------------------------------------------------+
 //| GoldHunterEA.mq5                                                 |
-//| Phase 2: diagnostics + signal-only prototype                     |
+//| Phase 3: active M15 signals + 3% risk estimate (signal-only)                     |
 //| SAFETY: This version NEVER sends, modifies, or closes orders.    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.10"
-#property description "Gold Hunter EA - signal-only research prototype"
+#property version   "0.20"
+#property description "Gold Hunter EA - active signal-only research prototype"
 
 input string          InpSymbol            = "XAUUSD";    // Confirmed Exness demo symbol
-input ENUM_TIMEFRAMES InpSignalTimeframe   = PERIOD_H1;    // Signal timeframe
-input ENUM_TIMEFRAMES InpTrendTimeframe    = PERIOD_H4;    // Higher-timeframe trend filter
+input ENUM_TIMEFRAMES InpSignalTimeframe   = PERIOD_M15;   // More frequent signal scan
+input ENUM_TIMEFRAMES InpTrendTimeframe    = PERIOD_H1;    // Trend confirmation
 input int             InpFastEMAPeriod     = 20;
 input int             InpSlowEMAPeriod     = 50;
 input int             InpRSIPeriod         = 14;
-input double          InpBuyRSIMin         = 50.0;
-input double          InpBuyRSIMax         = 70.0;
-input double          InpSellRSIMin        = 30.0;
-input double          InpSellRSIMax        = 50.0;
+input double          InpBuyRSIMin         = 48.0;
+input double          InpBuyRSIMax         = 68.0;
+input double          InpSellRSIMin        = 32.0;
+input double          InpSellRSIMax        = 52.0;
 input int             InpMaxSpreadPoints   = 0;            // 0 = report only; no spread filter
 input bool            InpRequireGoldSymbol = true;
 
 // Risk calculator only. These values do NOT place or manage a stop-loss.
 input double          InpRiskPercent        = 3.0;          // Account equity risk budget (%)
-input double          InpMaxRiskPercent     = 5.0;          // Hard safety ceiling for this prototype
+input double          InpMaxRiskPercent     = 3.0;          // Hard ceiling selected for this demo profile
 input double          InpStopDistancePoints = 1000.0;       // Hypothetical stop distance in broker points
 
 int g_fast_signal = INVALID_HANDLE;
@@ -137,7 +137,7 @@ int OnInit()
    if(InpFastEMAPeriod <= 0 || InpSlowEMAPeriod <= InpFastEMAPeriod ||
       InpRSIPeriod <= 0 || InpBuyRSIMin >= InpBuyRSIMax ||
       InpSellRSIMin >= InpSellRSIMax || InpRiskPercent <= 0.0 ||
-      InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 5.0 ||
+      InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 3.0 ||
       InpStopDistancePoints <= 0.0)
    {
       Print("GH ERROR: Invalid indicator inputs.");
@@ -164,7 +164,7 @@ int OnInit()
    long spread = SymbolInfoInteger(g_symbol, SYMBOL_SPREAD);
 
    Print("==================================================");
-   Print("Gold Hunter EA v0.10 initialized in SIGNAL-ONLY mode.");
+   Print("Gold Hunter EA v0.20 initialized in ACTIVE SIGNAL-ONLY mode.");
    Print("Symbol=", g_symbol, " | Digits=", digits,
          " | Point=", DoubleToString(point, digits),
          " | Current spread(points)=", spread);
@@ -172,7 +172,7 @@ int OnInit()
          " | Trend TF=", EnumToString(InpTrendTimeframe));
    Print("Risk calculator: ", DoubleToString(InpRiskPercent, 2),
          "% equity | hypothetical stop distance=", DoubleToString(InpStopDistancePoints, 1),
-         " points | hard ceiling=5.00%.");
+         " points | hard ceiling=3.00%.");
    Print("Risk calculator is informational only; no stop-loss or order is placed.");
    Print("No trading functions are present in this prototype.");
    Print("==================================================");
