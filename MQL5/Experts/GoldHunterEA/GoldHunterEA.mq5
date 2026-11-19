@@ -21,8 +21,8 @@ input int             InpMaxSpreadPoints   = 0;            // 0 = report only; n
 input bool            InpRequireGoldSymbol = true;
 
 // Risk calculator only. These values do NOT place or manage a stop-loss.
-input double          InpRiskPercent        = 0.5;          // Account equity risk budget (%)
-input double          InpMaxRiskPercent     = 1.0;          // Hard safety ceiling for this prototype
+input double          InpRiskPercent        = 3.0;          // Account equity risk budget (%)
+input double          InpMaxRiskPercent     = 5.0;          // Hard safety ceiling for this prototype
 input double          InpStopDistancePoints = 1000.0;       // Hypothetical stop distance in broker points
 
 int g_fast_signal = INVALID_HANDLE;
@@ -137,7 +137,7 @@ int OnInit()
    if(InpFastEMAPeriod <= 0 || InpSlowEMAPeriod <= InpFastEMAPeriod ||
       InpRSIPeriod <= 0 || InpBuyRSIMin >= InpBuyRSIMax ||
       InpSellRSIMin >= InpSellRSIMax || InpRiskPercent <= 0.0 ||
-      InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 1.0 ||
+      InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 5.0 ||
       InpStopDistancePoints <= 0.0)
    {
       Print("GH ERROR: Invalid indicator inputs.");
@@ -172,7 +172,7 @@ int OnInit()
          " | Trend TF=", EnumToString(InpTrendTimeframe));
    Print("Risk calculator: ", DoubleToString(InpRiskPercent, 2),
          "% equity | hypothetical stop distance=", DoubleToString(InpStopDistancePoints, 1),
-         " points | hard ceiling=1.00%.");
+         " points | hard ceiling=5.00%.");
    Print("Risk calculator is informational only; no stop-loss or order is placed.");
    Print("No trading functions are present in this prototype.");
    Print("==================================================");
