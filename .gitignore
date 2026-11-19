@@ -1,0 +1,18 @@
+# MetaTrader / MetaEditor generated files
+*.ex5
+*.ex4
+*.log
+*.cache
+*.dat
+*.set
+
+# Local test exports and temporary artifacts
+/tests/output/
+/reports/
+/tmp/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
