@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
 //| GoldHunterEA.mq5                                                 |
-//| Phase 3: active M15 signals + 3% risk estimate (signal-only)                     |
+//| Phase 4: M15 candle confirmation + ATR risk planning (signal-only)                     |
 //| SAFETY: This version NEVER sends, modifies, or closes orders.    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.30"
+#property version   "0.31"
 #property description "Gold Hunter EA - active signal-only research prototype"
 
 input string          InpSymbol            = "XAUUSD";    // Confirmed Exness demo symbol
@@ -169,7 +169,7 @@ int OnInit()
    long spread = SymbolInfoInteger(g_symbol, SYMBOL_SPREAD);
 
    Print("==================================================");
-   Print("Gold Hunter EA v0.30 initialized in ACTIVE SIGNAL-ONLY mode.");
+   Print("Gold Hunter EA v0.31 initialized in ACTIVE SIGNAL-ONLY mode.");
    Print("Symbol=", g_symbol, " | Digits=", digits,
          " | Point=", DoubleToString(point, digits),
          " | Current spread(points)=", spread);
@@ -218,8 +218,14 @@ void OnTick()
    }
 
    long spread = SymbolInfoInteger(g_symbol, SYMBOL_SPREAD);
-   bool bullish = (fast_signal > slow_signal && fast_trend > slow_trend);
-   bool bearish = (fast_signal < slow_signal && fast_trend < slow_trend);
+   // Require the last CLOSED M15 candle to agree with the trend direction.
+   // This confirmation can reduce noisy candidates but does not guarantee results.
+   double signal_open = iOpen(g_symbol, InpSignalTimeframe, 1);
+   double signal_close = iClose(g_symbol, InpSignalTimeframe, 1);
+   bool bullish = (fast_signal > slow_signal && fast_trend > slow_trend &&
+                   signal_close > signal_open);
+   bool bearish = (fast_signal < slow_signal && fast_trend < slow_trend &&
+                   signal_close < signal_open);
 
    string signal = "NO SIGNAL";
    if(bullish && rsi >= InpBuyRSIMin && rsi <= InpBuyRSIMax)
@@ -241,7 +247,12 @@ void OnTick()
 
    double point = SymbolInfoDouble(g_symbol, SYMBOL_POINT);
    int digits = (int)SymbolInfoInteger(g_symbol, SYMBOL_DIGITS);
-   double close_price = iClose(g_symbol, InpSignalTimeframe, 1);
+   double close_price = signal_close;
+   if(atr <= 0.0 || close_price <= 0.0 || point <= 0.0)
+   {
+      Print("GH WAIT: Invalid ATR, close price, or point size.");
+      return;
+   }
    double stop_distance_price = atr * InpATRStopMultiplier;
    double stop_distance_points = (point > 0.0 ? stop_distance_price / point : 0.0);
    double stop_loss_price = 0.0, take_profit_price = 0.0;
