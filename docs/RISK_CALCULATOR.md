@@ -14,16 +14,16 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 
 ## Safety limits
 
-- Default risk budget: 0.5% of equity.
-- Configurable maximum: 1.0%; the current code rejects values above 1.0%.
+- Default risk budget: 3.0% of equity.
+- Configurable maximum: 5.0%; the current code rejects values above 5.0%.
 - The stop distance is only a calculation assumption. It is not an actual stop-loss order.
 - Spread, slippage, commissions, swaps, gaps, and execution differences can make real losses larger than the estimate.
 - Tick-value fields and contract specifications must be verified on the user's Exness demo symbol before relying on any estimate.
 
 ## Inputs
 
-- `InpRiskPercent`: selected equity risk percentage (default 0.5).
-- `InpMaxRiskPercent`: hard ceiling (default 1.0; code also rejects a ceiling above 1.0).
+- `InpRiskPercent`: selected equity risk percentage (default 3.0; may be set up to 5.0).
+- `InpMaxRiskPercent`: hard ceiling (default 5.0; code also rejects a ceiling above 5.0).
 - `InpStopDistancePoints`: hypothetical stop distance in broker points (default 1000).
 
 ## Required validation before any live use
