@@ -7,7 +7,7 @@
 #property version   "0.10"
 #property description "Gold Hunter EA - signal-only research prototype"
 
-input string          InpSymbol            = "";          // Empty = chart symbol (supports broker suffixes)
+input string          InpSymbol            = "XAUUSD";    // Confirmed Exness demo symbol
 input ENUM_TIMEFRAMES InpSignalTimeframe   = PERIOD_H1;    // Signal timeframe
 input ENUM_TIMEFRAMES InpTrendTimeframe    = PERIOD_H4;    // Higher-timeframe trend filter
 input int             InpFastEMAPeriod     = 20;
