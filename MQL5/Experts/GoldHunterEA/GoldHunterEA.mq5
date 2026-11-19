@@ -267,19 +267,22 @@ void OnTick()
       take_profit_price = NormalizeDouble(close_price - stop_distance_price * InpRewardRiskRatio, digits);
    }
 
-   double suggested_volume, risk_budget, estimated_loss;
-   if(CalculateRiskVolume(stop_distance_points, suggested_volume, risk_budget, estimated_loss))
+   if(signal == "BUY CANDIDATE" || signal == "SELL CANDIDATE")
    {
-      if(suggested_volume > 0.0)
-         Print("GH RISK ESTIMATE | Equity risk budget=", DoubleToString(risk_budget, 2),
-               " | Suggested volume=", DoubleToString(suggested_volume, VolumeDigits(SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_STEP))),
-               " lots | Estimated loss at hypothetical stop=", DoubleToString(estimated_loss, 2),
-               " | ATR stop distance(points)=", DoubleToString(stop_distance_points, 1));
+      double suggested_volume, risk_budget, estimated_loss;
+      if(CalculateRiskVolume(stop_distance_points, suggested_volume, risk_budget, estimated_loss))
+      {
+         if(suggested_volume > 0.0)
+            Print("GH RISK ESTIMATE | Equity risk budget=", DoubleToString(risk_budget, 2),
+                  " | Suggested volume=", DoubleToString(suggested_volume, VolumeDigits(SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_STEP))),
+                  " lots | Estimated loss at planned stop=", DoubleToString(estimated_loss, 2),
+                  " | ATR stop distance(points)=", DoubleToString(stop_distance_points, 1));
+         else
+            Print("GH RISK WARNING | Minimum broker lot would exceed the selected risk budget. No volume suggested.");
+      }
       else
-         Print("GH RISK WARNING | Minimum broker lot would exceed the selected risk budget. No volume suggested.");
+         Print("GH RISK ERROR | Cannot calculate safely. Check broker tick/volume specifications.");
    }
-   else
-      Print("GH RISK ERROR | Cannot calculate safely. Check broker tick/volume specifications.");
 
    Print("GH ", signal,
          " | Symbol=", g_symbol,
