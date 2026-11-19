@@ -53,3 +53,17 @@ This script is diagnostic only. It does not open, modify, or close trades.
 ## Next milestone
 
 Obtain a trusted Windows MT5/MetaEditor session at no cost, compile the calendar diagnostic, and verify the Exness demo calendar output. Only then proceed with calendar integration.
+
+## 2026-11-20: checked official cloud trial terms
+
+A current official-source check found these constraints:
+
+- **Azure:** The free-account page advertises a $200 credit for 30 days and says the free-account card is not charged; a temporary $1 authorization may appear during verification. It also lists limited free Windows/Linux VM hours for eligible new customers. This is a time-limited trial, not a permanent free VPS. Check the exact VM size, Windows licensing, region availability and storage/network charges before creation. Source: https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account
+- **AWS:** New Free plan customers may receive $100 initially and earn up to $200 in credits over six months. The Free plan has service restrictions and no usage charges unless upgraded or paid-only services are activated. Windows EC2 eligibility and the exact eligible image/instance must be confirmed inside the account before launch. Source: https://aws.amazon.com/free/
+- **Google Cloud:** The $300 / 90-day trial requires a valid payment method for verification, and its non-billable Free Trial account explicitly cannot create VM instances based on Windows Server images. Therefore it is not our first choice for a Windows MT5 machine during the non-billable trial. Source: https://docs.cloud.google.com/free/docs/free-cloud-features
+
+### Recommendation
+
+For this phone-only Windows MT5 requirement, Azure is the first trial to inspect because its official offer explicitly lists Windows virtual machines. Do not create a VM yet. First confirm that the Azure free account signup is available to the user, that the required verification method is acceptable, and that the chosen Windows VM's complete cost is covered by the trial allowance. Do not upgrade to pay-as-you-go. If any screen asks to convert to paid billing or shows a charge beyond the free allowance, stop and do not proceed.
+
+These offers and eligibility can change. No cloud account or VM has been created, and no free always-on Windows VPS has been secured.
