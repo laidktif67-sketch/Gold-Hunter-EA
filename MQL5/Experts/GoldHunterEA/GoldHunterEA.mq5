@@ -4,7 +4,7 @@
 //| SAFETY: This version NEVER sends, modifies, or closes orders.    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.20"
+#property version   "0.30"
 #property description "Gold Hunter EA - active signal-only research prototype"
 
 input string          InpSymbol            = "XAUUSD";    // Confirmed Exness demo symbol
@@ -169,7 +169,7 @@ int OnInit()
    long spread = SymbolInfoInteger(g_symbol, SYMBOL_SPREAD);
 
    Print("==================================================");
-   Print("Gold Hunter EA v0.20 initialized in ACTIVE SIGNAL-ONLY mode.");
+   Print("Gold Hunter EA v0.30 initialized in ACTIVE SIGNAL-ONLY mode.");
    Print("Symbol=", g_symbol, " | Digits=", digits,
          " | Point=", DoubleToString(point, digits),
          " | Current spread(points)=", spread);
