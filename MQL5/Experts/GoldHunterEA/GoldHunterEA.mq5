@@ -23,13 +23,16 @@ input bool            InpRequireGoldSymbol = true;
 // Risk calculator only. These values do NOT place or manage a stop-loss.
 input double          InpRiskPercent        = 3.0;          // Account equity risk budget (%)
 input double          InpMaxRiskPercent     = 3.0;          // Hard ceiling selected for this demo profile
-input double          InpStopDistancePoints = 1000.0;       // Hypothetical stop distance in broker points
+input int             InpATRPeriod          = 14;           // ATR period on signal timeframe
+input double          InpATRStopMultiplier = 1.5;           // Stop distance = ATR x multiplier
+input double          InpRewardRiskRatio    = 2.0;           // Target distance = stop distance x R:R
 
 int g_fast_signal = INVALID_HANDLE;
 int g_slow_signal = INVALID_HANDLE;
 int g_fast_trend  = INVALID_HANDLE;
 int g_slow_trend  = INVALID_HANDLE;
 int g_rsi         = INVALID_HANDLE;
+int g_atr         = INVALID_HANDLE;
 string g_symbol;
 datetime g_last_bar = 0;
 
@@ -50,7 +53,7 @@ int VolumeDigits(const double step)
 
 // Estimates position size from broker contract specifications.
 // It does not submit an order and does not place a stop-loss.
-bool CalculateRiskVolume(double &volume, double &risk_money, double &estimated_loss)
+bool CalculateRiskVolume(const double stop_distance_points, double &volume, double &risk_money, double &estimated_loss)
 {
    volume = 0.0;
    risk_money = 0.0;
@@ -70,11 +73,11 @@ bool CalculateRiskVolume(double &volume, double &risk_money, double &estimated_l
    if(equity <= 0.0 || point <= 0.0 || tick_size <= 0.0 ||
       tick_value <= 0.0 || volume_min <= 0.0 ||
       volume_max < volume_min || volume_step <= 0.0 ||
-      InpStopDistancePoints <= 0.0)
+      stop_distance_points <= 0.0)
       return false;
 
    risk_money = equity * InpRiskPercent / 100.0;
-   double stop_price_distance = InpStopDistancePoints * point;
+   double stop_price_distance = stop_distance_points * point;
    double loss_per_lot = (stop_price_distance / tick_size) * tick_value;
    if(loss_per_lot <= 0.0)
       return false;
@@ -114,6 +117,7 @@ void ReleaseIndicators()
    if(g_fast_trend  != INVALID_HANDLE) IndicatorRelease(g_fast_trend);
    if(g_slow_trend  != INVALID_HANDLE) IndicatorRelease(g_slow_trend);
    if(g_rsi         != INVALID_HANDLE) IndicatorRelease(g_rsi);
+   if(g_atr         != INVALID_HANDLE) IndicatorRelease(g_atr);
 }
 
 int OnInit()
@@ -138,7 +142,7 @@ int OnInit()
       InpRSIPeriod <= 0 || InpBuyRSIMin >= InpBuyRSIMax ||
       InpSellRSIMin >= InpSellRSIMax || InpRiskPercent <= 0.0 ||
       InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 3.0 ||
-      InpStopDistancePoints <= 0.0)
+      InpATRPeriod <= 0 || InpATRStopMultiplier <= 0.0 || InpRewardRiskRatio <= 0.0)
    {
       Print("GH ERROR: Invalid indicator inputs.");
       return INIT_PARAMETERS_INCORRECT;
@@ -149,10 +153,11 @@ int OnInit()
    g_fast_trend  = iMA(g_symbol, InpTrendTimeframe, InpFastEMAPeriod, 0, MODE_EMA, PRICE_CLOSE);
    g_slow_trend  = iMA(g_symbol, InpTrendTimeframe, InpSlowEMAPeriod, 0, MODE_EMA, PRICE_CLOSE);
    g_rsi         = iRSI(g_symbol, InpSignalTimeframe, InpRSIPeriod, PRICE_CLOSE);
+   g_atr         = iATR(g_symbol, InpSignalTimeframe, InpATRPeriod);
 
    if(g_fast_signal == INVALID_HANDLE || g_slow_signal == INVALID_HANDLE ||
       g_fast_trend == INVALID_HANDLE || g_slow_trend == INVALID_HANDLE ||
-      g_rsi == INVALID_HANDLE)
+      g_rsi == INVALID_HANDLE || g_atr == INVALID_HANDLE)
    {
       Print("GH ERROR: Indicator initialization failed. Error=", GetLastError());
       ReleaseIndicators();
@@ -171,8 +176,8 @@ int OnInit()
    Print("Signal TF=", EnumToString(InpSignalTimeframe),
          " | Trend TF=", EnumToString(InpTrendTimeframe));
    Print("Risk calculator: ", DoubleToString(InpRiskPercent, 2),
-         "% equity | hypothetical stop distance=", DoubleToString(InpStopDistancePoints, 1),
-         " points | hard ceiling=3.00%.");
+         "% equity | ATR(", InpATRPeriod, ") stop multiplier=", DoubleToString(InpATRStopMultiplier, 2),
+         " | reward/risk=", DoubleToString(InpRewardRiskRatio, 2), " | hard ceiling=3.00%.");
    Print("Risk calculator is informational only; no stop-loss or order is placed.");
    Print("No trading functions are present in this prototype.");
    Print("==================================================");
@@ -201,12 +206,12 @@ void OnTick()
       return;
    }
 
-   double fast_signal, slow_signal, fast_trend, slow_trend, rsi;
+   double fast_signal, slow_signal, fast_trend, slow_trend, rsi, atr;
    if(!ReadClosedValue(g_fast_signal, fast_signal) ||
       !ReadClosedValue(g_slow_signal, slow_signal) ||
       !ReadClosedValue(g_fast_trend, fast_trend) ||
       !ReadClosedValue(g_slow_trend, slow_trend) ||
-      !ReadClosedValue(g_rsi, rsi))
+      !ReadClosedValue(g_rsi, rsi) || !ReadClosedValue(g_atr, atr))
    {
       Print("GH WAIT: Indicator data not ready. Error=", GetLastError());
       return;
@@ -234,14 +239,31 @@ void OnTick()
          spread_status = "WITHIN LIMIT";
    }
 
+   double point = SymbolInfoDouble(g_symbol, SYMBOL_POINT);
+   int digits = (int)SymbolInfoInteger(g_symbol, SYMBOL_DIGITS);
+   double close_price = iClose(g_symbol, InpSignalTimeframe, 1);
+   double stop_distance_price = atr * InpATRStopMultiplier;
+   double stop_distance_points = (point > 0.0 ? stop_distance_price / point : 0.0);
+   double stop_loss_price = 0.0, take_profit_price = 0.0;
+   if(signal == "BUY CANDIDATE")
+   {
+      stop_loss_price = NormalizeDouble(close_price - stop_distance_price, digits);
+      take_profit_price = NormalizeDouble(close_price + stop_distance_price * InpRewardRiskRatio, digits);
+   }
+   else if(signal == "SELL CANDIDATE")
+   {
+      stop_loss_price = NormalizeDouble(close_price + stop_distance_price, digits);
+      take_profit_price = NormalizeDouble(close_price - stop_distance_price * InpRewardRiskRatio, digits);
+   }
+
    double suggested_volume, risk_budget, estimated_loss;
-   if(CalculateRiskVolume(suggested_volume, risk_budget, estimated_loss))
+   if(CalculateRiskVolume(stop_distance_points, suggested_volume, risk_budget, estimated_loss))
    {
       if(suggested_volume > 0.0)
          Print("GH RISK ESTIMATE | Equity risk budget=", DoubleToString(risk_budget, 2),
                " | Suggested volume=", DoubleToString(suggested_volume, VolumeDigits(SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_STEP))),
                " lots | Estimated loss at hypothetical stop=", DoubleToString(estimated_loss, 2),
-               " | Stop distance(points)=", DoubleToString(InpStopDistancePoints, 1));
+               " | ATR stop distance(points)=", DoubleToString(stop_distance_points, 1));
       else
          Print("GH RISK WARNING | Minimum broker lot would exceed the selected risk budget. No volume suggested.");
    }
@@ -254,6 +276,9 @@ void OnTick()
          " | RSI=", DoubleToString(rsi, 2),
          " | EMA signal=", DoubleToString(fast_signal, 5), "/", DoubleToString(slow_signal, 5),
          " | EMA trend=", DoubleToString(fast_trend, 5), "/", DoubleToString(slow_trend, 5),
+         " | ATR=", DoubleToString(atr, digits),
+         " | Planned SL=", DoubleToString(stop_loss_price, digits),
+         " | Planned TP=", DoubleToString(take_profit_price, digits),
          " | Spread(points)=", spread,
          " | Spread check=", spread_status,
          " | EXECUTION=DISABLED");
