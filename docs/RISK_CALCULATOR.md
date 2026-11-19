@@ -22,8 +22,8 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 
 ## Inputs
 
-- `InpRiskPercent`: selected equity risk percentage (default 3.0; may be set up to 5.0).
-- `InpMaxRiskPercent`: hard ceiling (default 5.0; code also rejects a ceiling above 5.0).
+- `InpRiskPercent`: selected equity risk percentage (default 3.0; may not exceed 3.0).
+- `InpMaxRiskPercent`: hard ceiling (default 3.0; code also rejects a ceiling above 3.0).
 - `InpStopDistancePoints`: hypothetical stop distance in broker points (default 1000).
 
 ## Active signal profile
