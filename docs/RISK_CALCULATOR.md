@@ -34,6 +34,7 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 - Signal timeframe: M15, checked once per newly opened M15 candle using closed-candle indicator values.
 - Trend confirmation timeframe: H1.
 - BUY RSI range: 48–68; SELL RSI range: 32–52. These wider bands are intended to surface more candidates, not guarantee profitable entries.
+- The last closed M15 candle must agree with the signal direction (bullish candle for BUY, bearish candle for SELL).
 - ATR-based SL/TP prices and risk-based volume estimates are logged for candidate signals only.
 - This is still signal-only: it does not open trades, place stop-losses, or manage positions.
 
@@ -46,4 +47,4 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 5. Backtest and demo-forward-test with realistic spread, commission, slippage, and stop behavior.
 6. Design and test actual entry, stop-loss, take-profit, and exit rules separately.
 
-**Status:** research prototype only. Not compiled or backtested in this development session. Do not use it to make live trading decisions.
+**Status:** research prototype only. Version 0.31 adds closed-candle direction confirmation. Not compiled or backtested in this development session. Do not use it to make live trading decisions.
