@@ -126,3 +126,10 @@ CalendarValueHistory returns -1 on failure; documented errors include calendar t
 6. Compile and test in MetaEditor, then run the demo diagnostic and EA in signal-only mode. Keep automated execution disabled.
 
 A phone-only MT5 Android installation cannot compile or run MQL5 Expert Advisors. These diagnostic and compilation steps require MT5 desktop/MetaEditor on Windows or a suitable Windows VPS; the Android phone can monitor the account and view results but is not a substitute for MetaEditor.
+
+
+## 13. Diagnostic implementation added
+
+A read-only diagnostic script has been added at `MQL5/Scripts/GoldHunterCalendarCheck.mq5`. It queries the native calendar for USD records over a configurable 1–30 day window, resolves event names and importance, prints actual/forecast/previous/revised values and logs errors. It contains no order execution calls.
+
+This script is a first environment check, not the EA news filter. It has been committed to the repository but has not yet been compiled or run in MetaTrader. Its output must be checked on the target Exness demo terminal before calendar integration proceeds.
