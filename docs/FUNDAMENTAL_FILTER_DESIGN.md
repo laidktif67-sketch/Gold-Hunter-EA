@@ -93,3 +93,36 @@ Do not integrate into the EA until the provider and runtime are verified, test c
 | News protection window | Not implemented |
 | Automated order execution | Disabled / absent |
 | Compile, backtest, Exness demo validation | Not yet performed |
+
+
+## 10. Important MT5 API constraints verified against official documentation
+
+The native calendar is the preferred candidate, but it has two constraints that affect architecture:
+
+- Calendar functions use trade-server time (TimeTradeServer), including the broker's timezone/DST convention. Do not convert the returned event timestamps as if they were UTC or the phone's local time.
+- MQL5 calendar functions are not available in Strategy Tester and return FUNCTION_NOT_ALLOWED (4014) there. Therefore a live-calendar EA cannot be backtested by calling the calendar API directly. For reproducible historical tests, first capture calendar records from an online terminal into a versioned local data file, then make a separate tester data-reader mode. Do not silently bypass the news filter in the tester.
+
+Relevant official references:
+- Economic calendar overview: https://www.mql5.com/en/docs/calendar
+- CalendarValueHistory: https://www.mql5.com/en/docs/calendar/calendarvaluehistory
+- MqlCalendarValue fields: https://www.mql5.com/en/docs/constants/structures/mqlcalendar
+- Calendar testing limitations: https://www.mql5.com/en/book/advanced/calendar
+
+## 11. Correct interpretation of calendar fields
+
+Do not confuse event importance with directional impact. The event description (MqlCalendarEvent) contains the event importance classification. The value record (MqlCalendarValue) contains actual, forecast, previous, revised previous and impact_type. The impact_type field describes the potential impact on the currency rate; it is not a substitute for comparing the released number with consensus and does not directly provide a gold BUY/SELL signal.
+
+MqlCalendarValue numeric fields are stored multiplied by 1,000,000. Prefer the structure's HasActualValue / GetActualValue, HasForecastValue / GetForecastValue, HasPreviousValue / GetPreviousValue and HasRevisedValue / GetRevisedValue methods instead of manually reading sentinel values or forgetting the scale. Missing values must remain UNKNOWN.
+
+CalendarValueHistory returns -1 on failure; documented errors include calendar timeout (5401) and insufficient array capacity (5400). Handle these explicitly and fail safely. Do not treat an empty/failed response as proof that there are no upcoming USD events.
+
+## 12. Revised implementation sequence
+
+1. Build a small calendar diagnostic script for MT5 desktop (not an EA trading module). It should query a short future window for USD events, print event name, importance, server-time timestamp, actual/forecast/previous/revised values and error codes, and place no orders.
+2. Run it on the user's Exness demo terminal and confirm the calendar is populated and timestamps match the terminal's trade-server clock.
+3. Save a deterministic sample dataset for Strategy Tester use; calendar API calls themselves cannot run in the tester.
+4. Implement the fail-closed news-window gate using the verified API and clear logs.
+5. Add the directional-surprise classifier only after event IDs, units, sign conventions and missing-value behaviour have been validated per indicator.
+6. Compile and test in MetaEditor, then run the demo diagnostic and EA in signal-only mode. Keep automated execution disabled.
+
+A phone-only MT5 Android installation cannot compile or run MQL5 Expert Advisors. These diagnostic and compilation steps require MT5 desktop/MetaEditor on Windows or a suitable Windows VPS; the Android phone can monitor the account and view results but is not a substitute for MetaEditor.
