@@ -20,6 +20,11 @@ input double          InpSellRSIMax        = 50.0;
 input int             InpMaxSpreadPoints   = 0;            // 0 = report only; no spread filter
 input bool            InpRequireGoldSymbol = true;
 
+// Risk calculator only. These values do NOT place or manage a stop-loss.
+input double          InpRiskPercent        = 0.5;          // Account equity risk budget (%)
+input double          InpMaxRiskPercent     = 1.0;          // Hard safety ceiling for this prototype
+input double          InpStopDistancePoints = 1000.0;       // Hypothetical stop distance in broker points
+
 int g_fast_signal = INVALID_HANDLE;
 int g_slow_signal = INVALID_HANDLE;
 int g_fast_trend  = INVALID_HANDLE;
@@ -33,6 +38,63 @@ bool IsGoldSymbol(const string symbol)
    string upper = symbol;
    StringToUpper(upper);
    return (StringFind(upper, "XAUUSD") >= 0);
+}
+
+int VolumeDigits(const double step)
+{
+   for(int digits = 0; digits <= 8; digits++)
+      if(MathAbs(step - NormalizeDouble(step, digits)) < 0.00000001)
+         return digits;
+   return 8;
+}
+
+// Estimates position size from broker contract specifications.
+// It does not submit an order and does not place a stop-loss.
+bool CalculateRiskVolume(double &volume, double &risk_money, double &estimated_loss)
+{
+   volume = 0.0;
+   risk_money = 0.0;
+   estimated_loss = 0.0;
+
+   double equity = AccountInfoDouble(ACCOUNT_EQUITY);
+   double point = SymbolInfoDouble(g_symbol, SYMBOL_POINT);
+   double tick_size = SymbolInfoDouble(g_symbol, SYMBOL_TRADE_TICK_SIZE);
+   double tick_value = SymbolInfoDouble(g_symbol, SYMBOL_TRADE_TICK_VALUE_LOSS);
+   if(tick_value <= 0.0)
+      tick_value = SymbolInfoDouble(g_symbol, SYMBOL_TRADE_TICK_VALUE);
+
+   double volume_min = SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_MIN);
+   double volume_max = SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_MAX);
+   double volume_step = SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_STEP);
+
+   if(equity <= 0.0 || point <= 0.0 || tick_size <= 0.0 ||
+      tick_value <= 0.0 || volume_min <= 0.0 ||
+      volume_max < volume_min || volume_step <= 0.0 ||
+      InpStopDistancePoints <= 0.0)
+      return false;
+
+   risk_money = equity * InpRiskPercent / 100.0;
+   double stop_price_distance = InpStopDistancePoints * point;
+   double loss_per_lot = (stop_price_distance / tick_size) * tick_value;
+   if(loss_per_lot <= 0.0)
+      return false;
+
+   double raw_volume = risk_money / loss_per_lot;
+   if(raw_volume < volume_min)
+      return true; // Safe outcome: minimum lot would exceed the risk budget.
+
+   double capped_volume = MathMin(raw_volume, volume_max);
+   volume = MathFloor(capped_volume / volume_step + 0.000000001) * volume_step;
+   volume = NormalizeDouble(volume, VolumeDigits(volume_step));
+
+   if(volume < volume_min)
+   {
+      volume = 0.0;
+      return true;
+   }
+
+   estimated_loss = volume * loss_per_lot;
+   return true;
 }
 
 bool ReadClosedValue(const int handle, double &value)
@@ -74,7 +136,9 @@ int OnInit()
 
    if(InpFastEMAPeriod <= 0 || InpSlowEMAPeriod <= InpFastEMAPeriod ||
       InpRSIPeriod <= 0 || InpBuyRSIMin >= InpBuyRSIMax ||
-      InpSellRSIMin >= InpSellRSIMax)
+      InpSellRSIMin >= InpSellRSIMax || InpRiskPercent <= 0.0 ||
+      InpRiskPercent > InpMaxRiskPercent || InpMaxRiskPercent > 1.0 ||
+      InpStopDistancePoints <= 0.0)
    {
       Print("GH ERROR: Invalid indicator inputs.");
       return INIT_PARAMETERS_INCORRECT;
@@ -106,6 +170,10 @@ int OnInit()
          " | Current spread(points)=", spread);
    Print("Signal TF=", EnumToString(InpSignalTimeframe),
          " | Trend TF=", EnumToString(InpTrendTimeframe));
+   Print("Risk calculator: ", DoubleToString(InpRiskPercent, 2),
+         "% equity | hypothetical stop distance=", DoubleToString(InpStopDistancePoints, 1),
+         " points | hard ceiling=1.00%.");
+   Print("Risk calculator is informational only; no stop-loss or order is placed.");
    Print("No trading functions are present in this prototype.");
    Print("==================================================");
 
@@ -165,6 +233,20 @@ void OnTick()
       else
          spread_status = "WITHIN LIMIT";
    }
+
+   double suggested_volume, risk_budget, estimated_loss;
+   if(CalculateRiskVolume(suggested_volume, risk_budget, estimated_loss))
+   {
+      if(suggested_volume > 0.0)
+         Print("GH RISK ESTIMATE | Equity risk budget=", DoubleToString(risk_budget, 2),
+               " | Suggested volume=", DoubleToString(suggested_volume, VolumeDigits(SymbolInfoDouble(g_symbol, SYMBOL_VOLUME_STEP))),
+               " lots | Estimated loss at hypothetical stop=", DoubleToString(estimated_loss, 2),
+               " | Stop distance(points)=", DoubleToString(InpStopDistancePoints, 1));
+      else
+         Print("GH RISK WARNING | Minimum broker lot would exceed the selected risk budget. No volume suggested.");
+   }
+   else
+      Print("GH RISK ERROR | Cannot calculate safely. Check broker tick/volume specifications.");
 
    Print("GH ", signal,
          " | Symbol=", g_symbol,
