@@ -6,7 +6,7 @@ The EA includes an informational position-size estimate. It does not send, modif
 
 The estimate uses:
 - Current account equity (not the original deposit).
-- The configured risk percentage (default: 0.5%).
+- The configured risk percentage (default: 3.0%).
 - A hypothetical stop distance in broker points (default: 1000 points; configurable).
 - The broker's XAUUSD point, tick size, loss tick value, and volume min/max/step.
 
@@ -15,7 +15,7 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 ## Safety limits
 
 - Default risk budget: 3.0% of equity.
-- Configurable maximum: 5.0%; the current code rejects values above 5.0%.
+- Hard maximum: 3.0%; the current code rejects any selected risk or ceiling above 3.0%.
 - The stop distance is only a calculation assumption. It is not an actual stop-loss order.
 - Spread, slippage, commissions, swaps, gaps, and execution differences can make real losses larger than the estimate.
 - Tick-value fields and contract specifications must be verified on the user's Exness demo symbol before relying on any estimate.
@@ -25,6 +25,13 @@ The volume is rounded down to the broker's volume step. If the minimum permitted
 - `InpRiskPercent`: selected equity risk percentage (default 3.0; may be set up to 5.0).
 - `InpMaxRiskPercent`: hard ceiling (default 5.0; code also rejects a ceiling above 5.0).
 - `InpStopDistancePoints`: hypothetical stop distance in broker points (default 1000).
+
+## Active signal profile
+
+- Signal timeframe: M15, checked once per newly opened M15 candle using closed-candle indicator values.
+- Trend confirmation timeframe: H1.
+- BUY RSI range: 48–68; SELL RSI range: 32–52. These wider bands are intended to surface more candidates, not guarantee profitable entries.
+- This is still signal-only: it does not open trades, place stop-losses, or manage positions.
 
 ## Required validation before any live use
 
