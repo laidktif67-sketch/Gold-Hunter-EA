@@ -391,7 +391,10 @@ void LogCandidate(const int index, const bool is_buy, const double atr,
          " | Estimated stop loss=", DoubleToString(estimated_loss, 2),
          " | Open portfolio risk=", DoubleToString(open_risk, 2),
          " | Spread(points)=", DoubleToString(spread_points, 1),
-         " | EXECUTION=DISABLED");\n   // Reserve this candidate during the current scan cycle so later symbols\n   // cannot each consume the same remaining portfolio risk budget.\n   g_cycle_reserved_risk += estimated_loss;
+         " | EXECUTION=DISABLED");
+   // Reserve this candidate during the current scan cycle so later symbols
+   // cannot each consume the same remaining portfolio risk budget.
+   g_cycle_reserved_risk += estimated_loss;
 }
 
 //+------------------------------------------------------------------+
