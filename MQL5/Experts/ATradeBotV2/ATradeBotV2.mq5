@@ -293,7 +293,8 @@ bool RiskGuardsAllowSignals()
    if(peak > 0.0 && equity <= peak * (1.0 - InpEmergencyDrawdownPct / 100.0))
    {
       g_halted = true;
-      Print("V2 HALT | Emergency peak-to-equity drawdown reached. Manual review required.");
+      GlobalVariableSet(g_gv_prefix + "emergency_halt", 1.0);
+      Print("V2 HALT | Emergency peak-to-equity drawdown reached. Persistent halt set; manual review and explicit reset required.");
       return false;
    }
    if(peak > 0.0 && equity <= peak * (1.0 - InpPauseDrawdownPct / 100.0))
@@ -562,6 +563,14 @@ int OnInit()
    g_gv_prefix = "ATRV2_" +
       IntegerToString((long)AccountInfoInteger(ACCOUNT_LOGIN)) + "_" +
       IntegerToString((long)InpMagic) + "_";
+
+   if(GlobalVariableCheck(g_gv_prefix + "emergency_halt") &&
+      GlobalVariableGet(g_gv_prefix + "emergency_halt") > 0.5)
+   {
+      g_halted = true;
+      Print("V2 HALT | Persistent emergency halt already exists. Remove the terminal global variable ",
+            g_gv_prefix, "emergency_halt only after manual review.");
+   }
 
    EventSetTimer(MathMax(2, InpScanSeconds));
    Print("==================================================");
