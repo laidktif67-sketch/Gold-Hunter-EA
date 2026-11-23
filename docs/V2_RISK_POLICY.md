@@ -18,13 +18,14 @@ The engine uses OrderCalcProfit to estimate loss at the planned stop and rounds 
 ## Portfolio rule
 Before reporting a candidate as eligible, V2 sums stop-risk for existing positions with its magic number. A position without a stop-loss, or whose risk cannot be calculated, blocks new candidates. The candidate is rejected if existing stop-risk plus candidate stop-risk would exceed the configured portfolio ceiling.
 
-This is a first safety layer only. The present signal-only prototype does not place orders and therefore does not yet implement pending-order risk reservations, execution-time price rechecks, or trade-server confirmation.
+This is a first safety layer only. The signal-only prototype does not place orders. During each multi-symbol scan cycle it reserves risk for already accepted candidates, so later symbols cannot each consume the same remaining portfolio budget. Reservations reset on the next scan cycle and are diagnostic only; a future execution engine must atomically reserve pending-order risk, recheck prices immediately before sending, and verify trade-server confirmation.
 
 ## Loss controls
 Daily and weekly baselines are stored as terminal global variables, and peak equity is tracked by account + magic number. These controls pause new signal processing; they do not close existing positions. Restart, terminal-global-variable cleanup, broker server-time boundaries, deposits/withdrawals, and manual trading need dedicated tests before execution is enabled.
 
 ## Important limitations
 - Spread filter is disabled when InpMaxSpreadPoints is zero. Calibrate separate thresholds for gold and each FX symbol before execution.
+- Quotes older than 120 seconds are rejected for signal generation; validate this against each instrument's trading sessions.
 - Commission, swap, slippage, gaps, and execution-price changes can increase realized loss beyond the estimate.
 - Risk estimates are not guarantees.
 - No martingale, grid, averaging down, or loss-recovery sizing is included.
