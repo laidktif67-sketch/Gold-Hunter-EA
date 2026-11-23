@@ -511,6 +511,18 @@ int OnInit()
    ArrayResize(g_fast_gold_trend, total);
    ArrayResize(g_slow_gold_trend, total);
 
+   // Initialize every handle before any failure path can release them.
+   for(int i = 0; i < total; i++)
+   {
+      g_last_bar[i] = 0;
+      g_fast_signal[i] = INVALID_HANDLE;
+      g_slow_signal[i] = INVALID_HANDLE;
+      g_rsi_signal[i] = INVALID_HANDLE;
+      g_atr_signal[i] = INVALID_HANDLE;
+      g_fast_gold_trend[i] = INVALID_HANDLE;
+      g_slow_gold_trend[i] = INVALID_HANDLE;
+   }
+
    for(int i = 0; i < total; i++)
    {
       string symbol = g_symbols[i];
@@ -520,14 +532,10 @@ int OnInit()
          ReleaseAllIndicators();
          return INIT_FAILED;
       }
-      g_last_bar[i] = 0;
       g_fast_signal[i] = iMA(symbol, InpSignalTimeframe, InpFastEMA, 0, MODE_EMA, PRICE_CLOSE);
       g_slow_signal[i] = iMA(symbol, InpSignalTimeframe, InpSlowEMA, 0, MODE_EMA, PRICE_CLOSE);
       g_rsi_signal[i] = iRSI(symbol, InpSignalTimeframe, InpRSIPeriod, PRICE_CLOSE);
       g_atr_signal[i] = iATR(symbol, InpSignalTimeframe, InpATRPeriod);
-      g_fast_gold_trend[i] = INVALID_HANDLE;
-      g_slow_gold_trend[i] = INVALID_HANDLE;
-
       if(IsGold(symbol))
       {
          g_fast_gold_trend[i] = iMA(symbol, InpGoldTrendTimeframe,
