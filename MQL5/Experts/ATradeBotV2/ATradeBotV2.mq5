@@ -51,6 +51,7 @@ int      g_fast_gold_trend[];
 int      g_slow_gold_trend[];
 bool     g_halted = false;
 string   g_gv_prefix = "";
+double   g_cycle_reserved_risk = 0.0;
 
 //+------------------------------------------------------------------+
 string TrimText(string value)
@@ -365,7 +366,7 @@ void LogCandidate(const int index, const bool is_buy, const double atr,
       return;
    }
    double portfolio_cap = equity * InpMaxPortfolioRiskPct / 100.0;
-   if(open_risk + estimated_loss > portfolio_cap + 0.01)
+   if(open_risk + g_cycle_reserved_risk + estimated_loss > portfolio_cap + 0.01)
    {
       Print("V2 REJECT | Portfolio stop-risk cap would be exceeded | open=",
             DoubleToString(open_risk, 2), " | candidate=",
@@ -389,7 +390,7 @@ void LogCandidate(const int index, const bool is_buy, const double atr,
          " | Estimated stop loss=", DoubleToString(estimated_loss, 2),
          " | Open portfolio risk=", DoubleToString(open_risk, 2),
          " | Spread(points)=", DoubleToString(spread_points, 1),
-         " | EXECUTION=DISABLED");
+         " | EXECUTION=DISABLED");\n   // Reserve this candidate during the current scan cycle so later symbols\n   // cannot each consume the same remaining portfolio risk budget.\n   g_cycle_reserved_risk += estimated_loss;
 }
 
 //+------------------------------------------------------------------+
