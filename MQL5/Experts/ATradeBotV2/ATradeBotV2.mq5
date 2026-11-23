@@ -407,6 +407,12 @@ void EvaluateSymbol(const int index)
 
    MqlTick tick;
    if(!SymbolInfoTick(symbol, tick)) return;
+   if(tick.time <= 0 || (TimeCurrent() - tick.time) > 120)
+   {
+      Print("V2 REJECT | Stale quote | ", symbol, " | tick time=",
+            TimeToString(tick.time, TIME_DATE|TIME_SECONDS));
+      return;
+   }
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
    int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    if(point <= 0.0 || tick.ask <= 0.0 || tick.bid <= 0.0) return;
