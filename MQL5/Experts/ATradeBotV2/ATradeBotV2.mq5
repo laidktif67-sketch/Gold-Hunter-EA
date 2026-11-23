@@ -370,7 +370,8 @@ void LogCandidate(const int index, const bool is_buy, const double atr,
    {
       Print("V2 REJECT | Portfolio stop-risk cap would be exceeded | open=",
             DoubleToString(open_risk, 2), " | candidate=",
-            DoubleToString(estimated_loss, 2), " | cap=",
+            DoubleToString(estimated_loss, 2), " | cycle reserved=",
+            DoubleToString(g_cycle_reserved_risk, 2), " | cap=",
             DoubleToString(portfolio_cap, 2));
       return;
    }
@@ -602,6 +603,7 @@ void OnDeinit(const int reason)
 void OnTimer()
 {
    if(g_halted) return;
+   g_cycle_reserved_risk = 0.0;
    if(!RiskGuardsAllowSignals()) return;
    for(int i = 0; i < ArraySize(g_symbols); i++)
    {
